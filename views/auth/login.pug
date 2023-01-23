@@ -1,0 +1,20 @@
+extends ../layout/index.pug
+
+block contenido 
+    .py-10
+        h1.my-10.text-center.text-4xl.font-black.text-indigo-500 Bienes
+            span.font-normal.text-neutral-900 Raices 
+        h2.text-center.text-2xl.font-extrabold #{pagina}
+        .mt-4.mx-auto.max-w-md
+            .bg-white.pt-8.px-4.shadow-md.rounded-md
+                form(action="", method="post")
+                    .mb-3 
+                        label.block.text-gray-600.text-sm.uppercase.font-bold.mb-1(for="email") Email 
+                        input#nombre.px-3.py-1.w-full.rounded-xl.bg-slate-200.outline-0(type="email", name="email" placeholder="tuemail@dominio.com")  
+                    .mb-3 
+                        label.block.text-gray-600.text-sm.uppercase.font-bold.mb-1(for="password") Password 
+                        input#nombre.px-3.py-1.w-full.rounded-xl.bg-slate-200.outline-0(type="password", name="password" placeholder="*****") 
+                    input.w-full.bg-indigo-500.text-white.text-xl.rounded-md.font-semibold.cursor-pointer(type="submit", value="Enviar" class="hover:bg-indigo-700")
+                div(class='flex items-center justify-between mt-4 py-4 text-xs')
+                    a(href="registro") Registrarte 
+                    a(href="recuperar-password") Olvidé mi password 
