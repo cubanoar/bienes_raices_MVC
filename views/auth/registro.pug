@@ -1,25 +1,43 @@
 extends ../layout/index.pug
 
 block contenido 
-    .py-10
+    .py-5
         h1.my-10.text-center.text-4xl.font-black.text-indigo-500 Bienes
             span.font-normal.text-neutral-900 Raices 
         h2.text-center.text-2xl.font-extrabold #{pagina}
         .mt-4.mx-auto.max-w-md
             .bg-white.pt-8.px-4.shadow-md.rounded-md
-                form(action="", method="post")
+                if usuarioExiste
+                    .text-center
+                        p.text-red-800.bg-red-200.border.border-red-800.animation-pulse #{usuarioExiste.msg}
+                form(action="registro", method="post")
+                    input(type="hidden" name="_csrf" value= csrfToken)
+                    img.block.w-42.h-24.m-auto(src="/img/registro.svg", alt="registro_img")
                     .mb-3 
                         label.block.text-gray-600.text-sm.uppercase.font-bold.mb-1(for="nombre") Nombre 
-                        input#nombre.px-3.py-1.w-full.rounded-xl.bg-slate-200.outline-0(type="text", name="nombre" placeholder="Nombre")  
+                        input#nombre.px-3.py-1.w-full.rounded-xl.bg-slate-200.outline-0(type="text", name="nombre" placeholder="Nombre" value= usuario ? usuario.nombre : '')  
+                        if (errorNombre)
+                            .w-full 
+                            p.text-red-500.text-sm Nombre inválido
                     .mb-3 
                         label.block.text-gray-600.text-sm.uppercase.font-bold.mb-1(for="email") Email 
-                        input#nombre.px-3.py-1.w-full.rounded-xl.bg-slate-200.outline-0(type="email", name="email" placeholder="tuemail@dominio.com")  
+                        input#nombre.px-3.py-1.w-full.rounded-xl.bg-slate-200.outline-0(type="email", name="email" placeholder="tuemail@dominio.com" value= usuario ? usuario.email : '')  
+                        if (errorEmail || !emailValuesChecked)
+                            .w-full 
+                            p.text-red-500.text-sm Email inválido
+                            p.text-red-500.text-sm Por el momento solo GMAIL o YAHOO
                     .mb-3 
                         label.block.text-gray-600.text-sm.uppercase.font-bold.mb-1(for="password") Password 
-                        input#nombre.px-3.py-1.w-full.rounded-xl.bg-slate-200.outline-0(type="password", name="password" placeholder="*****")  
+                        input#nombre.px-3.py-1.w-full.rounded-xl.bg-slate-200.outline-0(type="password", name="password" placeholder="********")
+                        if (!passValuesChecked)
+                            .w-full 
+                            p.text-red-500.text-sm La contraseña debe tener entre 8 y 16 caracteres, al menos un dígito, al menos una minúscula y al menos una mayúscula. NO puede tener otros símbolos.
                     .mb-3 
                         label.block.text-gray-600.text-sm.uppercase.font-bold.mb-1(for="repetir_password") Confirmar Password 
-                        input#nombre.px-3.py-1.w-full.rounded-xl.bg-slate-200.outline-0(type="password", name="repetir_password" placeholder="*****")  
+                        input#nombre.px-3.py-1.w-full.rounded-xl.bg-slate-200.outline-0(type="password", name="repetir_password" placeholder="********")  
+                        if (errorRepetirPassword)
+                            .w-full 
+                            p.text-red-500.text-sm Las contraseñas no coinciden
                     input.w-full.bg-indigo-500.text-white.text-xl.rounded-md.font-semibold.cursor-pointer(type="submit", value="Enviar" class="hover:bg-indigo-700")
                 div(class='flex items-center justify-between mt-4 py-4 text-xs')
                     a(href="login") ¿Ya tienes Cuenta? 

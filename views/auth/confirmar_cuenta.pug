@@ -1,0 +1,13 @@
+extends ../layout/index.pug
+
+block contenido 
+    .py-5
+        h1.my-10.text-center.text-4xl.font-black.text-indigo-500 Bienes
+            span.font-normal.text-neutral-900 Raices 
+        h2.text-center.text-2xl.font-extrabold.mb-2 #{pagina}
+        div(class= error ? 'bg-red-200 border-red-800 text-red-800' : 'bg-green-200 border-green-800 .text-green-800').shadow-md.py-8.rounded-md.max-w-md.mx-auto.text-center.font-bold
+            img.block.w-24.h-24.m-auto.my-4(src="/img/denied.svg", alt="confirm_img")
+            p.mb-4 #{mensaje}
+
+            if !error
+                a(href="/auth/login").text-center.text-indigo-600.border.border-indigo-600.px-3.py-1.rounded-md.bg-white Inicia sesión 
