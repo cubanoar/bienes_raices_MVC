@@ -5,6 +5,9 @@ import {
   registrar,
   confirmar,
   formularioRecuperarPassword,
+  resetPassword,
+  nuevoPassword,
+  comprobarToken
 } from '../controllers/usuariosController.js';
 
 const router = Router();
@@ -26,6 +29,11 @@ router
 
     .get('/confirmar/:token', confirmar)
 
-    .get('/recuperar-password', formularioRecuperarPassword);
+    .get('/recuperar-password', formularioRecuperarPassword)
+    .post('/recuperar-password', resetPassword)
+
+    //Almacena el nuevo PASSWORD
+    .get('/recuperar-password/:token', comprobarToken)
+    .post('/recuperar-password/:token', nuevoPassword);
 
 export default router;

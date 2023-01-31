@@ -1,12 +1,12 @@
 import { check, validationResult } from 'express-validator';
-
+import bcrypt from 'bcrypt';
 import Usuario from '../models/Usuario.js';
 import { userId } from '../helpers/tokens.js';
 import {
   passValuesCheck,
   emailValuesCheck,
 } from '../helpers/validacionEmailPassword.js';
-import { emailRegistro } from '../helpers/emails.js';
+import { emailRegistro, emailOlvidePassword } from '../helpers/emails.js';
 
 let confirm = false;
 
@@ -37,7 +37,8 @@ const registrar = async (req, res) => {
     .trim()
     .run(req); */
 
-  let resultado = validationResult(req); //Se llena con los errores
+  //Se llena con los errores
+  let resultado = validationResult(req);
 
   //Validar el password con mi REGEX
   const passValuesChecked = passValuesCheck(req.body.password);
@@ -56,8 +57,8 @@ const registrar = async (req, res) => {
       errorNombre: errores.includes('nombre'),
       errorEmail: errores.includes('email'),
       /*errorPassword: errores.includes('password'), */
-      passValuesCheck,
-      emailValuesCheck,
+      passValuesChecked,
+      emailValuesChecked,
       errorRepetirPassword: errores.includes('repetir_password'),
       usuario: {
         nombre: req.body.nombre,
@@ -87,7 +88,6 @@ const registrar = async (req, res) => {
 
   //Almacenar el usuario y Creacion del usuario
   const usuario = await Usuario.create({ ...req.body, token: userId() });
-  console.log('Este es el usuario:', usuario);
 
   //Enviar email de confirmacion
   emailRegistro({
@@ -108,17 +108,19 @@ const registrar = async (req, res) => {
       }
       renovarToken();
     }
-  }, 120000);
+  }, 300000);
 
   //Mostrar mensaje de confimacion
   res.render('templates/mensaje', {
     pagina: 'Cuenta creada correctamente',
-    mensaje: 'Hemos enviado un Email de confirmación, deberas confirmar dentro de los 2 minutos siguientes o volver a crear una cuenta.',
+    mensaje:
+      'Hemos enviado un Email de confirmación, deberas confirmar dentro de los 5 minutos siguientes o volver a crear una cuenta.',
   });
 };
 
 //COMPROBAR CUENTA CON TOKEN POR EMAIL
 const confirmar = async (req, res) => {
+  //Obtenemos el parametro de la url, el token deberia ser
   const { token } = req.params;
 
   //Verificar si el token es válido
@@ -151,7 +153,132 @@ const formularioRecuperarPassword = (req, res) => {
   res.render('auth/recuperar-password', {
     pagina: 'Recuperar Acceso',
     csrfToken: req.csrfToken(),
+    emailValuesChecked: true,
   });
+};
+
+const resetPassword = async (req, res) => {
+  //Validacion Formulario
+  await check('email').isEmail().trim().normalizeEmail().run(req);
+
+  //Se llena con los errores
+  let resultado = validationResult(req);
+
+  //Validar el EMAIL con mi REGEX, solo Gmail y Yahoo
+  const emailValuesChecked = emailValuesCheck(req.body.email);
+
+  const errores = resultado.errors.map((err) => err.param);
+
+  //Verificar que el <resultado> este vacio
+  if (!resultado.isEmpty() || !emailValuesChecked) {
+    //Tiene errores
+    return res.render('auth/recuperar-password', {
+      pagina: 'Recuperar Acceso',
+      csrfToken: req.csrfToken(),
+      errorEmail: errores.includes('email'),
+      emailValuesChecked,
+    });
+  }
+
+  //Buscando al usuario
+  const { email } = req.body;
+
+  const usuario = await Usuario.findOne({ where: { email } });
+
+  //Verificar que el <resultado> este vacio
+  if (!usuario) {
+    //Tiene errores
+    return res.render('auth/recuperar-password', {
+      pagina: 'Recuperar Acceso No regi',
+      csrfToken: req.csrfToken(),
+      emailValuesChecked: true,
+      msgError: 'Usuario no registrado',
+    });
+  }
+
+  //Enviar email de confirmacion
+  emailOlvidePassword({
+    nombre: usuario.nombre,
+    email: usuario.email,
+    token: usuario.token,
+  });
+
+  //Pasados los 5 minutos
+  setTimeout(async () => {
+    //Confirmar la cuenta
+    usuario.token = userId();
+    usuario.save();
+  }, 300000);
+
+  //Mostrar mensaje de confimacion
+  res.render('templates/mensaje', {
+    pagina: 'Reestablece tu password',
+    mensaje:
+      'Hemos enviado un Email con las instrucciones para reestablecer el password, deberas hacerlo dentro los 5 minutos siguientes.',
+  });
+};
+
+const comprobarToken = async (req, res) => {
+  const { token } = req.params;
+
+  const usuario = await Usuario.findOne({ where: { token } });
+
+  if (!usuario) {
+    return res.render('auth/confirmar_cuenta', {
+      pagina: 'Token no válido',
+      mensaje: 'Token no válido',
+      error: true,
+    });
+  }
+
+  //Mostrar Formulario para Cambiar Password
+  res.render('auth/reset-password', {
+    csrfToken: req.csrfToken(),
+    pagina: 'Reset Password',
+    passValuesChecked: true,
+  });
+};
+const nuevoPassword = async (req, res) => {
+  //Validacion Formulario
+  await check('repetir_password').equals(req.body.password).run(req);
+
+  let resultado = validationResult(req);
+
+  //Validar el password con mi REGEX
+  const passValuesChecked = passValuesCheck(req.body.password);
+
+  const errores = resultado.errors.map((err) => err.param);
+
+  //Verificar que el <resultado> este vacio
+  if (!resultado.isEmpty() || !passValuesChecked) {
+    //Tiene errores
+    return res.render('auth/reset-password', {
+      pagina: 'Reset password',
+      errorPassword: errores.includes('password'),
+      csrfToken: req.csrfToken(),
+      passValuesChecked,
+      errorRepetirPassword: errores.includes('repetir_password'),
+    });
+  }
+
+  const token = req.params.token;
+  const { password } = req.body;
+
+  //Identificar quien hace el cambio
+  const usuario = await Usuario.findOne({ where: { token } });
+
+  //Hashear el nuevo password
+  const salt = await bcrypt.genSalt(10);
+  usuario.password = await bcrypt.hash(password, salt);
+  usuario.token = null
+
+  await usuario.save();
+
+  res.render('auth/confirmar_cuenta',
+    {
+      pagina: 'Password Reestablecido',
+      mensaje: 'Password guardado correctamente',
+    })
 };
 
 export {
@@ -160,4 +287,7 @@ export {
   registrar,
   confirmar,
   formularioRecuperarPassword,
+  resetPassword,
+  comprobarToken,
+  nuevoPassword,
 };
